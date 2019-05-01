@@ -134,6 +134,15 @@ class ProgramNode extends ASTnode {
     public void nameAnalysis() {
         SymTable symTab = new SymTable();
         myDeclList.nameAnalysis(symTab);
+
+        // check for main function
+        for (DeclNode d : myDeclList) {
+            if (d instanceof FnDeclNode && (FnDeclNode)d.getName().equals("main")) {
+                return;
+            }
+        }
+        ErrMsg.fatal(0, 0,
+            "No main function");
     }
     
     /**
@@ -146,6 +155,8 @@ class ProgramNode extends ASTnode {
     public void unparse(PrintWriter p, int indent) {
         myDeclList.unparse(p, indent);
     }
+
+
 
     // 1 kid
     private DeclListNode myDeclList;
@@ -254,6 +265,10 @@ class FnBodyNode extends ASTnode {
     public FnBodyNode(DeclListNode declList, StmtListNode stmtList) {
         myDeclList = declList;
         myStmtList = stmtList;
+    }
+
+    public DeclListNode myDeclList() {
+        return myDeclList;
     }
 
     /**
@@ -396,6 +411,10 @@ class VarDeclNode extends DeclNode {
         myType = type;
         myId = id;
         mySize = size;
+    }
+
+    public IdNode getId() {
+        return myId;
     }
 
     /**
@@ -565,6 +584,23 @@ class FnDeclNode extends DeclNode {
                                " in FnDeclNode.nameAnalysis");
             System.exit(-1);
         }
+
+        // for code generation we need to set the offsets of params & locals
+        int numFormals = 0;
+        for (FormalDeclNode f : myFormalsList) {
+            // get sym
+            // assumption: each data type requires 4 bytes
+            f.getId().sym().setOffset(4*numFormals);
+            numFormals++;
+        }
+        int numLocals = 0;
+        for (DeclNode d : myBody.myDeclList()) {
+            if (d instanceof VarDeclNode) {
+                int offset = 4*numFormals + 4 + 4 + 4*numLocals;
+                (VarDeclNode)d.getId().sym().setOffset(offset);
+                numLocals++;
+            }
+        }
         
         return null;
     } 
@@ -588,6 +624,10 @@ class FnDeclNode extends DeclNode {
         p.println("}\n");
     }
 
+    public String getName(){
+        return myId.name();
+    }
+
     // 4 kids
     private TypeNode myType;
     private IdNode myId;
@@ -599,6 +639,10 @@ class FormalDeclNode extends DeclNode {
     public FormalDeclNode(TypeNode type, IdNode id) {
         myType = type;
         myId = id;
+    }
+
+    public IdNode getId() {
+        return myId;
     }
 
     /**

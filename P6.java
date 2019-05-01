@@ -50,6 +50,7 @@ public class P6 {
 		try {
 			setInfile(args[0]);
 			setOutfile(args[1]);
+			codeGen.p = new PrintWriter(args[1]);
 		} catch(BadInfileException e) {
 			pukeAndDie(e.getMessage());
 		} catch(BadOutfileException e) {
