@@ -38,6 +38,7 @@ class FnSym extends Sym {
     // new fields
     private Type returnType;
     private int numParams;
+    private int numLocals;
     private List<Type> paramTypes;
     
     public FnSym(Type type, int numparams) {
@@ -56,6 +57,14 @@ class FnSym extends Sym {
 
     public int getNumParams() {
         return numParams;
+    }
+
+    public int getNumLocals() {
+        return numLocals;
+    }
+
+    public int setNumLocals(int i) {
+        numLocals = i;
     }
 
     public List<Type> getParamTypes() {
