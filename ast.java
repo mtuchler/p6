@@ -1630,6 +1630,10 @@ class IdNode extends ExpNode {
             link(sym);
         }
     }
+
+    public void codeGen(){
+        
+    }
  
     /**
      * typeCheck
@@ -1957,6 +1961,8 @@ class CallExpNode extends ExpNode {
         p.print(")");
     }
 
+
+
     // 2 kids
     private IdNode myId;
     private ExpListNode myExpList;  // possibly null
@@ -2266,6 +2272,22 @@ class PlusNode extends ArithmeticExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+    public void codeGen(){
+        //evaluate operands
+        myExp1.codeGen();
+        myExp2.codeGen();
+
+        //pop values into regs T0,T1
+        genPop(T1, 4);
+        genPop(T0, 4);
+
+        //do addition
+        generate("add", T0, T0, T1);
+
+        //push result
+        genPush(T0, 4);
+    }
 }
 
 class MinusNode extends ArithmeticExpNode {
@@ -2279,6 +2301,22 @@ class MinusNode extends ArithmeticExpNode {
         p.print(" - ");
         myExp2.unparse(p, 0);
         p.print(")");
+    }
+
+    public void codeGen(){
+        //evaluate operands
+        myExp1.codeGen();
+        myExp2.codeGen();
+
+        //pop values into regs T0,T1
+        genPop(T1, 4);
+        genPop(T0, 4);
+
+        //do addition
+        generate("sub", T0, T0, T1);
+
+        //push result
+        genPush(T0, 4);
     }
 }
 
@@ -2323,6 +2361,22 @@ class AndNode extends LogicalExpNode {
         myExp2.unparse(p, 0);
         p.print(")");
     }
+
+    public void codeGen(){
+        //evaluate operands
+        myExp1.codeGen();
+        myExp2.codeGen();
+
+        //pop values into regs T0,T1
+        genPop(T1, 4);
+        genPop(T0, 4);
+
+        //do addition
+        generate("and", T0, T0, T1);
+
+        //push result
+        genPush(T0, 4);
+    }
 }
 
 class OrNode extends LogicalExpNode {
@@ -2336,6 +2390,22 @@ class OrNode extends LogicalExpNode {
         p.print(" || ");
         myExp2.unparse(p, 0);
         p.print(")");
+    }
+
+    public void codeGen(){
+        //evaluate operands
+        myExp1.codeGen();
+        myExp2.codeGen();
+
+        //pop values into regs T0,T1
+        genPop(T1, 4);
+        genPop(T0, 4);
+
+        //do addition
+        generate("or", T0, T0, T1);
+
+        //push result
+        genPush(T0, 4);
     }
 }
 
