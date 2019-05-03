@@ -50,7 +50,6 @@ public class P6 {
 		try {
 			setInfile(args[0]);
 			setOutfile(args[1]);
-			codeGen.p = new PrintWriter(args[1]);
 		} catch(BadInfileException e) {
 			pukeAndDie(e.getMessage());
 		} catch(BadOutfileException e) {
@@ -156,9 +155,7 @@ public class P6 {
 			return P6.RESULT_TYPE_ERROR;
 		}
 
-		//////////////////////////
-		// TODO: Calling codeGen   //
-		//////////////////////////
+		astRoot.codeGen();
 
 		return P6.RESULT_CORRECT;
 	}

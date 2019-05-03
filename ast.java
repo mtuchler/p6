@@ -1,6 +1,6 @@
 import java.io.*;
 import java.util.*;
-
+import java.util.HashMap;
 
 // **********************************************************************
 // The ASTnode class defines the nodes of the abstract-syntax tree that
@@ -108,7 +108,7 @@ import java.util.*;
 // **********************************************************************
 
 // hashmap for string literals
-HashMap<String, String> map;
+
 
 abstract class ASTnode { 
     // every subclass must provide an unparse operation
@@ -126,6 +126,7 @@ abstract class ASTnode {
 // **********************************************************************
 
 class ProgramNode extends ASTnode {
+    
     public ProgramNode(DeclListNode L) {
         myDeclList = L;
     }
@@ -138,12 +139,14 @@ class ProgramNode extends ASTnode {
     public void nameAnalysis() {
         SymTable symTab = new SymTable();
         myDeclList.nameAnalysis(symTab);
-        map = new HashMap<String, String>();
 
         // check for main function
-        for (DeclNode d : myDeclList) {
-            if (d instanceof FnDeclNode && (FnDeclNode)d.getName().equals("main")) {
-                return;
+        for (DeclNode d : myDeclList.getDeclList()) {
+            if (d instanceof FnDeclNode) {
+                FnDeclNode d_fn = (FnDeclNode)d;
+                if (d_fn.getName().equals("main")) {
+                    return;
+                }
             }
         }
         ErrMsg.fatal(0, 0,
@@ -155,6 +158,10 @@ class ProgramNode extends ASTnode {
      */
     public void typeCheck() {
         myDeclList.typeCheck();
+    }
+
+    public void codeGen() {
+        
     }
     
     public void unparse(PrintWriter p, int indent) {
@@ -170,6 +177,10 @@ class ProgramNode extends ASTnode {
 class DeclListNode extends ASTnode {
     public DeclListNode(List<DeclNode> S) {
         myDecls = S;
+    }
+
+    public List<DeclNode> getDeclList() {
+        return myDecls;
     }
 
     /**
@@ -224,6 +235,10 @@ class DeclListNode extends ASTnode {
 class FormalsListNode extends ASTnode {
     public FormalsListNode(List<FormalDeclNode> S) {
         myFormals = S;
+    }
+
+    public List<FormalDeclNode> getFormalsList() {
+        return myFormals;
     }
 
     /**
@@ -592,21 +607,21 @@ class FnDeclNode extends DeclNode {
 
         // for code generation we need to set the offsets of params & locals
         int numFormals = 0;
-        for (FormalDeclNode f : myFormalsList) {
+        for (FormalDeclNode f : myFormalsList.getFormalsList()) {
             // get sym
             // assumption: each data type requires 4 bytes
             f.getId().sym().setOffset(4*numFormals);
             numFormals++;
         }
         int numLocals = 0;
-        for (DeclNode d : myBody.myDeclList()) {
+        for (DeclNode d : myBody.myDeclList().getDeclList()) {
             if (d instanceof VarDeclNode) {
                 int offset = 4*numFormals + 4 + 4 + 4*numLocals;
-                (VarDeclNode)d.getId().sym().setOffset(offset);
+                ((VarDeclNode)d).getId().sym().setOffset(offset);
                 numLocals++;
             }
         }
-        sym.setNumLocals();
+        sym.setNumLocals(numLocals);
 
         return null;
     } 
@@ -1433,6 +1448,8 @@ abstract class ExpNode extends ASTnode {
      */
     public void nameAnalysis(SymTable symTab) { }
     
+    abstract public void codeGen();
+
     abstract public Type typeCheck();
     abstract public int lineNum();
     abstract public int charNum();
@@ -1471,8 +1488,8 @@ class IntLitNode extends ExpNode {
     }
 
     public void codeGen(){
-        generate("li", T0, myIntVal);
-        genPush(T0);
+        Codegen.generate("li", Codegen.T0, myIntVal);
+        Codegen.genPush(Codegen.T0);
     }
 
     private int myLineNum;
@@ -1513,15 +1530,15 @@ class StringLitNode extends ExpNode {
     }
 
     public void codeGen(){
-        String result = map.get(myStrVal);
-        String newLabel = nextLabel();
-        if (result == null){
-            map.put(myStrVal, newLabel);
-            result = map.get(myStrVal);
-        }
+        // String result = map.get(myStrVal);
+        // String newLabel = Codegen.nextLabel();
+        // if (result == null){
+        //     map.put(myStrVal, newLabel);
+        //     result = map.get(myStrVal);
+        // }
 
-        generate("la", T0, result);
-        genPush(T0);        
+        // Codegen.generate("la", Codegen.T0, result);
+        // Codegen.genPush(Codegen.T0);        
 
         
     }
@@ -1562,8 +1579,8 @@ class TrueNode extends ExpNode {
     }
 
     public void codeGen(){
-        generate("li", T0, 1);
-        genPush(T0);
+        Codegen.generate("li", Codegen.T0, 1);
+        Codegen.genPush(Codegen.T0);
     }
 
     private int myLineNum;
@@ -1602,8 +1619,8 @@ class FalseNode extends ExpNode {
     }
 
     public void codeGen(){
-        generate("li", T0, 0);
-        genPush(T0);
+        Codegen.generate("li", Codegen.T0, 0);
+        Codegen.genPush(Codegen.T0);
     }
 
     private int myLineNum;
@@ -1829,6 +1846,10 @@ class DotAccessExpNode extends ExpNode {
     public Type typeCheck() {
         return myId.typeCheck();
     }
+
+    public void codeGen() {
+
+    }
     
     public void unparse(PrintWriter p, int indent) {
         myLoc.unparse(p, 0);
@@ -1918,6 +1939,10 @@ class AssignNode extends ExpNode {
         if (indent != -1)  p.print(")");
     }
 
+    public void codeGen() {
+
+    }
+
     // 2 kids
     private ExpNode myLhs;
     private ExpNode myExp;
@@ -1997,7 +2022,9 @@ class CallExpNode extends ExpNode {
         p.print(")");
     }
 
+    public void codeGen() {
 
+    }
 
     // 2 kids
     private IdNode myId;
@@ -2103,6 +2130,10 @@ class UnaryMinusNode extends UnaryExpNode {
         return retType;
     }
 
+    public void codeGen() {
+
+    }
+
     public void unparse(PrintWriter p, int indent) {
         p.print("(-");
         myExp.unparse(p, 0);
@@ -2133,6 +2164,10 @@ class NotNode extends UnaryExpNode {
         }
         
         return retType;
+    }
+
+    public void codeGen() {
+
     }
 
     public void unparse(PrintWriter p, int indent) {
@@ -2314,15 +2349,15 @@ class PlusNode extends ArithmeticExpNode {
         myExp1.codeGen();
         myExp2.codeGen();
 
-        //pop values into regs T0,T1
-        genPop(T1);
-        genPop(T0);
+        //pop values into regs Codegen.T0,Codegen.T1
+        Codegen.genPop(Codegen.T1);
+        Codegen.genPop(Codegen.T0);
 
         //do addition
-        generate("add", T0, T0, T1);
+        Codegen.generate("add", Codegen.T0, Codegen.T0, Codegen.T1);
 
         //push result
-        genPush(T0);
+        Codegen.genPush(Codegen.T0);
     }
 }
 
@@ -2344,15 +2379,15 @@ class MinusNode extends ArithmeticExpNode {
         myExp1.codeGen();
         myExp2.codeGen();
 
-        //pop values into regs T0,T1
-        genPop(T1);
-        genPop(T0);
+        //pop values into regs Codegen.T0,Codegen.T1
+        Codegen.genPop(Codegen.T1);
+        Codegen.genPop(Codegen.T0);
 
         //do addition
-        generate("sub", T0, T0, T1);
+        Codegen.generate("sub", Codegen.T0, Codegen.T0, Codegen.T1);
 
         //push result
-        genPush(T0);
+        Codegen.genPush(Codegen.T0);
     }
 }
 
@@ -2374,12 +2409,12 @@ class TimesNode extends ArithmeticExpNode {
         myExp1.codeGen();
         myExp2.codeGen();
 
-        genPop(T1);
-        genpop(T0);
+        Codegen.genPop(Codegen.T1);
+        Codegen.genPop(Codegen.T0);
 
-        generate("mul", T0, T0, T1);
+        Codegen.generate("mul", Codegen.T0, Codegen.T0, Codegen.T1);
 
-        genPush(T0);
+        Codegen.genPush(Codegen.T0);
     }
 }
 
@@ -2400,12 +2435,12 @@ class DivideNode extends ArithmeticExpNode {
         myExp1.codeGen();
         myExp2.codeGen();
 
-        genPop(T1);
-        genpop(T0);
+        Codegen.genPop(Codegen.T1);
+        Codegen.genPop(Codegen.T0);
 
-        generate("div", T0, T0, T1);
+        Codegen.generate("div", Codegen.T0, Codegen.T0, Codegen.T1);
 
-        genPush(T0);
+        Codegen.genPush(Codegen.T0);
     }
 }
 
@@ -2425,25 +2460,25 @@ class AndNode extends LogicalExpNode {
     public void codeGen(){
         //evaluate LHS operand
         myExp1.codeGen();
-        genPop(T0);
-        generate("li", T1, 0);
+        Codegen.genPop(Codegen.T0);
+        Codegen.generate("li", Codegen.T1, 0);
         // make the false jump and end labels
-        String j = nextLabel();
-        String end = nextLabel();
-        //jump to label if T0 is equal to 0 (false)
-        generate("beq", T0, T1, j);
+        String j = Codegen.nextLabel();
+        String end = Codegen.nextLabel();
+        //jump to label if Codegen.T0 is equal to 0 (false)
+        Codegen.generate("beq", Codegen.T0, Codegen.T1, j);
         //evaluate RHS operand
-        genPush(T0);
+        Codegen.genPush(Codegen.T0);
         myExp2.codeGen();
-        genPop(T1);
-        genPop(T0);
-        //and operation, store in T1
-        generate("and", T0, T0, T1);
-        genPush(T0);
-        generate("b", end); //a push is made so jump to end
-        genLabel(j);
-        genPush(T1); //jump from above, pushes 0
-        genLabel(end);
+        Codegen.genPop(Codegen.T1);
+        Codegen.genPop(Codegen.T0);
+        //and operation, store in Codegen.T1
+        Codegen.generate("and", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPush(Codegen.T0);
+        Codegen.generate("b", end); //a push is made so jump to end
+        Codegen.genLabel(j);
+        Codegen.genPush(Codegen.T1); //jump from above, pushes 0
+        Codegen.genLabel(end);
     
     }
 }
@@ -2464,25 +2499,25 @@ class OrNode extends LogicalExpNode {
     public void codeGen(){
         //evaluate LHS operand
         myExp1.codeGen();
-        genPop(T0);
-        generate("li", T1, 1); // load "true"
+        Codegen.genPop(Codegen.T0);
+        Codegen.generate("li", Codegen.T1, 1); // load "true"
         // make the false jump and end labels
-        String j = nextLabel();
-        String end = nextLabel();
-        //jump to label if T0 is equal to 0 (false)
-        generate("beq", T0, T1, j);
+        String j = Codegen.nextLabel();
+        String end = Codegen.nextLabel();
+        //jump to label if Codegen.T0 is equal to 0 (false)
+        Codegen.generate("beq", Codegen.T0, Codegen.T1, j);
         //evaluate RHS operand
-        genPush(T0);
+        Codegen.genPush(Codegen.T0);
         myExp2.codeGen();
-        genPop(T1);
-        genPop(T0);
-        //and operation, store in T1
-        generate("or", T0, T0, T1);
-        genPush(T0);
-        generate("b", end); //a push is made so jump to end
-        genLabel(j);
-        genPush(T1); //jump from above, pushes 1
-        genLabel(end);
+        Codegen.genPop(Codegen.T1);
+        Codegen.genPop(Codegen.T0);
+        //and operation, store in Codegen.T1
+        Codegen.generate("or", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPush(Codegen.T0);
+        Codegen.generate("b", end); //a push is made so jump to end
+        Codegen.genLabel(j);
+        Codegen.genPush(Codegen.T1); //jump from above, pushes 1
+        Codegen.genLabel(end);
     
     }
 }
@@ -2503,10 +2538,10 @@ class EqualsNode extends EqualityExpNode {
     public void codeGen(){
         myExp1.codeGen();
         myExp2.codeGen();
-        genPop(T0);
-        genPop(T1);
-        generate("seq", T0, T0, T1);
-        genPush(T0);
+        Codegen.genPop(Codegen.T0);
+        Codegen.genPop(Codegen.T1);
+        Codegen.generate("seq", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPush(Codegen.T0);
     }
 }
 
@@ -2526,10 +2561,10 @@ class NotEqualsNode extends EqualityExpNode {
     public void codeGen(){
         myExp1.codeGen();
         myExp2.codeGen();
-        genPop(T0);
-        genPop(T1);
-        generate("sne", T0, T0, T1);
-        genPush(T0);
+        Codegen.genPop(Codegen.T0);
+        Codegen.genPop(Codegen.T1);
+        Codegen.generate("sne", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPush(Codegen.T0);
     }
 }
 
@@ -2549,10 +2584,10 @@ class LessNode extends RelationalExpNode {
     public void codeGen(){
         myExp1.codeGen();
         myExp2.codeGen();
-        genPop(T0);
-        genPop(T1);
-        generate("slt", T0, T0, T1);
-        genPush(T0);
+        Codegen.genPop(Codegen.T0);
+        Codegen.genPop(Codegen.T1);
+        Codegen.generate("slt", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPush(Codegen.T0);
     }
 
 }
@@ -2573,10 +2608,10 @@ class GreaterNode extends RelationalExpNode {
     public void codeGen(){
         myExp1.codeGen();
         myExp2.codeGen();
-        genPop(T0);
-        genPop(T1);
-        generate("sgt", T0, T0, T1);
-        genPush(T0);
+        Codegen.genPop(Codegen.T0);
+        Codegen.genPop(Codegen.T1);
+        Codegen.generate("sgt", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPush(Codegen.T0);
     }
 }
 
@@ -2596,10 +2631,10 @@ class LessEqNode extends RelationalExpNode {
     public void codeGen(){
         myExp1.codeGen();
         myExp2.codeGen();
-        genPop(T0);
-        genPop(T1);
-        generate("sle", T0, T0, T1);
-        genPush(T0);
+        Codegen.genPop(Codegen.T0);
+        Codegen.genPop(Codegen.T1);
+        Codegen.generate("sle", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPush(Codegen.T0);
     }
 }
 
@@ -2619,9 +2654,9 @@ class GreaterEqNode extends RelationalExpNode {
     public void codeGen(){
         myExp1.codeGen();
         myExp2.codeGen();
-        genPop(T0);
-        genPop(T1);
-        generate("sge", T0, T0, T1);
-        genPush(T0);
+        Codegen.genPop(Codegen.T0);
+        Codegen.genPop(Codegen.T1);
+        Codegen.generate("sge", Codegen.T0, Codegen.T0, Codegen.T1);
+        Codegen.genPush(Codegen.T0);
     }
 }

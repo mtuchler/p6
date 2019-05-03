@@ -63,7 +63,7 @@ class FnSym extends Sym {
         return numLocals;
     }
 
-    public int setNumLocals(int i) {
+    public void setNumLocals(int i) {
         numLocals = i;
     }
 
