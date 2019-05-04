@@ -39,6 +39,7 @@ class FnSym extends Sym {
     private Type returnType;
     private int numParams;
     private int numLocals;
+    private int totalOffset;
     private List<Type> paramTypes;
     
     public FnSym(Type type, int numparams) {
@@ -59,12 +60,21 @@ class FnSym extends Sym {
         return numParams;
     }
 
+    // number of local vars
     public int getNumLocals() {
         return numLocals;
     }
-
     public void setNumLocals(int i) {
         numLocals = i;
+    }
+
+   
+    // number of bytes bw $sp and $fp
+    public int getTotalOffset() {
+        return totalOffset;
+    }
+    public void setTotalOffset(int i) {
+        totalOffset = i;
     }
 
     public List<Type> getParamTypes() {

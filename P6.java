@@ -76,6 +76,7 @@ public class P6 {
 	public void setOutfile(String filename) throws BadOutfileException{
 		try {
 			outFile = new PrintWriter(filename);
+			Codegen.p = outFile;
 		} catch (FileNotFoundException ex) {
 			throw new BadOutfileException(ex, filename);
 		}
